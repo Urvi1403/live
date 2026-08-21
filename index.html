@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>LIVE</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#000;color:#fff;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  #app{position:fixed;inset:0;display:flex;justify-content:center}
+  .stage{position:relative;width:100%;max-width:480px;height:100%;overflow:hidden;background:#000}
+
+  /* ---------- setup ---------- */
+  #setup{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    gap:26px;padding:0 28px;z-index:50;background:#000}
+  .eyebrow{font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px}
+  h1{font-size:28px;font-weight:700;line-height:1.15}
+  label{display:block;font-size:12px;color:rgba(255,255,255,.5)}
+  input[type=text]{margin-top:8px;width:100%;background:rgba(255,255,255,.08);border:0;border-radius:12px;
+    padding:14px 16px;color:#fff;font-size:16px;outline:none}
+  input[type=text]:focus{box-shadow:0 0 0 2px #ff3b5c}
+  input[type=range]{margin-top:12px;width:100%;accent-color:#ff3b5c}
+  .row{display:flex;align-items:center;justify-content:space-between}
+  .switch{width:48px;height:28px;border-radius:99px;background:rgba(255,255,255,.2);position:relative;transition:background .2s}
+  .switch.on{background:#ff3b5c}
+  .switch i{position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
+  .switch.on i{left:24px}
+  .go{width:100%;background:#ff3b5c;border:0;border-radius:12px;padding:16px;color:#fff;
+    font-size:16px;font-weight:700;font-family:inherit}
+  .go:active{transform:scale(.98)}
+  #err{font-size:13px;line-height:1.5;color:#ffb4c0;background:rgba(255,59,92,.12);
+    border-radius:10px;padding:12px 14px;display:none}
+
+  /* ---------- live ---------- */
+  #live{position:absolute;inset:0;display:none}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#0b0714}
+  video.mirror{transform:scaleX(-1)}
+  .vignette{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent 28%,transparent 62%,rgba(0,0,0,.7))}
+
+  .top{position:absolute;top:0;left:0;right:0;padding:calc(12px + env(safe-area-inset-top)) 12px 0;
+    display:flex;align-items:flex-start;gap:8px;z-index:10}
+  .pill{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.45);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:99px;padding:6px 10px}
+  .pill.host{padding:4px 12px 4px 4px}
+  .host b{display:block;font-size:13px;font-weight:600;line-height:1.1}
+  .host span{display:block;font-size:10px;color:rgba(255,255,255,.6);margin-top:2px}
+  .dot{width:6px;height:6px;border-radius:50%;background:#ff3b5c;animation:pulse 1.2s infinite}
+  @keyframes pulse{50%{opacity:.3}}
+  .live-txt{font-size:11px;font-weight:600}
+  .count{margin-left:auto;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+  .icon-btn{width:32px;height:32px;border:0;border-radius:50%;background:rgba(0,0,0,.45);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font-size:16px;
+    display:flex;align-items:center;justify-content:center;font-family:inherit}
+  #flip{position:absolute;top:calc(60px + env(safe-area-inset-top));right:12px;width:40px;height:40px;z-index:10}
+  #flip:active{transform:scale(.9)}
+
+  .avatar{flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#fff}
+
+  #banner{position:absolute;top:calc(108px + env(safe-area-inset-top));left:12px;right:64px;z-index:9;
+    display:none;align-items:center;gap:10px;border-radius:12px;padding:10px 12px;
+    background:linear-gradient(90deg,rgba(255,59,92,.95),rgba(255,138,61,.85))}
+  #banner .who{font-size:13px;font-weight:700;line-height:1.2}
+  #banner .what{font-size:11px;color:rgba(255,255,255,.9)}
+  #banner .emo{margin-left:auto;font-size:30px;animation:pop .6s ease-in-out infinite alternate}
+  @keyframes pop{to{transform:scale(1.25)}}
+  .slide-in{animation:slide .35s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes slide{from{opacity:0;transform:translateX(-110%)}}
+
+  #hearts{position:absolute;right:10px;bottom:96px;width:70px;height:300px;overflow:hidden;pointer-events:none;z-index:8}
+  #hearts span{position:absolute;bottom:0;font-size:22px;animation:float ease-out forwards}
+  @keyframes float{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}
+    100%{opacity:0;transform:translateY(-280px) translateX(20px) scale(1.15)}}
+
+  #chat{position:absolute;left:10px;bottom:64px;width:72%;max-height:44%;overflow-y:auto;
+    display:flex;flex-direction:column;gap:6px;z-index:8;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(to bottom,transparent,#000 18%);
+    mask-image:linear-gradient(to bottom,transparent,#000 18%)}
+  #chat::-webkit-scrollbar{display:none}
+  .msg{display:flex;align-items:flex-start;gap:6px;background:rgba(0,0,0,.3);
+    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border-radius:10px;
+    padding:6px 8px;width:fit-content;max-width:100%;animation:in .22s ease-out}
+  .msg .t{font-size:12.5px;line-height:1.35;min-width:0;word-break:break-word}
+  .msg .n{color:rgba(255,255,255,.55)}
+  .join{align-self:flex-start;font-size:11px;background:rgba(255,255,255,.1);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:99px;
+    padding:4px 10px;color:rgba(255,255,255,.7);animation:in .22s ease-out}
+  .gift{display:flex;align-items:center;gap:8px;background:rgba(255,59,92,.85);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:10px;
+    padding:6px 8px;width:fit-content;font-size:12px;animation:in .22s ease-out}
+  .gift b{font-weight:700}
+  .gift .x{font-weight:700;font-style:italic;font-size:13px}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}}
+
+  .bottom{position:absolute;left:0;right:0;bottom:0;z-index:10;display:flex;align-items:center;gap:8px;
+    padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+  .fakeinput{flex:1;background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(8px);
+    backdrop-filter:blur(8px);border-radius:99px;padding:10px 16px;font-size:13px;color:rgba(255,255,255,.45)}
+  .circ{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:center;font-size:18px}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"><div class="stage">
+
+  <div id="setup">
+    <div>
+      <div class="eyebrow">Go live</div>
+      <h1>Start streaming</h1>
+    </div>
+    <label>Username
+      <input id="nick" type="text" placeholder="yourname" autocomplete="off" autocapitalize="none">
+    </label>
+    <label>Viewers: <b id="vlabel" style="color:#fff">20.3K</b>
+      <input id="vrange" type="range" min="500" max="150000" step="100" value="20300">
+    </label>
+    <div class="row" id="frontrow">
+      <span style="font-size:14px">Start with front camera</span>
+      <span class="switch on" id="frontsw"><i></i></span>
+    </div>
+    <button class="go" id="gobtn">Go LIVE</button>
+    <div id="err"></div>
+  </div>
+
+  <div id="live">
+    <video id="vid" autoplay playsinline muted></video>
+    <div class="vignette"></div>
+
+    <div class="top">
+      <div class="pill host"><span class="avatar" id="hostav"></span><span><b id="hostname"></b><span id="likes"></span></span></div>
+      <div class="pill"><span class="dot"></span><span class="live-txt">LIVE</span></div>
+      <div class="pill count">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="opacity:.8">
+          <path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+        <span id="viewers">20.3K</span>
+      </div>
+      <button class="icon-btn" id="exit">✕</button>
+    </div>
+
+    <button class="icon-btn" id="flip" aria-label="Flip camera">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9h4l2-3h6l2 3h4v10H3z"/><path d="M9.5 14a2.5 2.5 0 015 0"/>
+        <path d="M13.2 12.3h1.4v1.4M11.3 15.7H9.9v-1.4"/></svg>
+    </button>
+
+    <div id="banner"><span class="avatar" id="bav"></span>
+      <span><span class="who" id="bwho"></span><span class="what" id="bwhat"></span></span>
+      <span class="emo" id="bemo"></span></div>
+
+    <div id="hearts"></div>
+    <div id="chat"></div>
+
+    <div class="bottom">
+      <div class="fakeinput">Add comment…</div>
+      <div class="circ">🎁</div><div class="circ">❤️</div>
+    </div>
+  </div>
+
+</div></div>
+
+<script>
+/* ================= data ================= */
+const NAMES=["jake","emma","liam","sofia","noah","mia","lucas","ava","ethan","chloe","mason","zoe","leo","maya",
+"ryan","lily","adam","nina","kyle","elena","dylan","sara","owen","ruby","caleb","jade","finn","alice","max","ivy",
+"diego","lucia","hugo","manon","theo","clara","pablo","ines","jack","nora","luca","emily","sam","tara","ben","mila"];
+const SUF=["","","_","1","07","12","99","23","x","_x","22","official","yt","_","2005","98"];
+
+const EN=["W","W stream","hi","hiii","hey","yo","sup","hello","LOL","lmao","gg","first","wtf","no way","hahaha",
+"bruh","real","fr fr","facts","insane","this is crazy","im dead","she typed it","let's go","king","queen","goat",
+"who else from london","hello from texas","anyone from canada","greetings from spain","how long you been live",
+"where are you rn","what you doing","can you hear me","say hi pls","notice me","been here since the start",
+"first time here","turn the volume up","the audio is low","cant hear you","mic check","fix the light",
+"why so many people","how many are you","20k wow","the numbers are climbing","chat is flying","slow down chat",
+"stop spamming","spam","L","L take","nah","yes","yeah yeah","exactly","for real","agreed","true","facts bro",
+"im watching from work","im supposed to be asleep","its 3am here","good evening","good morning","gn",
+"love you","love this","best stream today","subbed","following now","been following for months",
+"what song is this","whats the music","link pls","drop the link","whats in the background","behind you",
+"someone is behind you","did you see that","what was that","wait what","huh","???","ok??","chill","calm down",
+"do it do it","dooo it","pls do it","one more time","again","encore","show us","closer","zoom in","hold the phone still",
+"the camera is shaking","flip the camera","other camera pls","stop moving","sit down","stand up","dance",
+"say my name","read my comment","you missed my comment","nobody reads chat","hes not reading",
+"shes not reading","he ignored me","typical","classic","expected","called it","told you","knew it",
+"🔥","🔥🔥🔥","😂","😂😂😂","😭","😭😭","❤️","❤️❤️","🙌","😍","🥺","🤣","💀","💀💀","😳","👀","👑","🤙","‼️","🫡"];
+
+const ES=["hola","holaa","que pasa","jajaja","jajajaja","que guapo","que guapa","saludos desde madrid",
+"desde mexico","no puede ser","te amo","buenas noches","sube el volumen","dale","que fuerte","increible",
+"me encanta","siii","que hace","donde estas","cuantos son","no se oye","🔥 desde argentina","primera vez aqui"];
+
+const FR=["salut","salut tout le monde","mdr","mdrrr","coucou","trop bien","bonsoir","ça va ?","de paris ici",
+"depuis la belgique","c'est quoi ça","j'adore","wesh","trop drôle","on entend rien","monte le son",
+"t'es où","vous êtes combien","incroyable","frère","ptdr","nooon"];
+
+const GIFTS=[{n:"Rose",e:"🌹",c:1,w:34},{n:"Heart",e:"💗",c:5,w:24},{n:"Coffee",e:"☕",c:9,w:14},
+{n:"Perfume",e:"🌸",c:20,w:10},{n:"Doughnut",e:"🍩",c:30,w:8},{n:"Rocket",e:"🚀",c:150,w:5},
+{n:"Galaxy",e:"🌌",c:1000,w:3},{n:"Lion",e:"🦁",c:2999,w:2}];
+
+const HUES=[["#ff3b5c","#ff8a3d"],["#25f4ee","#2b7fff"],["#a259ff","#ff5fa2"],
+["#00d68f","#25f4ee"],["#ffb020","#ff3b5c"],["#5b6bff","#a259ff"]];
+
+/* ================= helpers ================= */
+const R=Math.random;
+const pick=a=>a[Math.floor(R()*a.length)];
+function nick(){const n=pick(NAMES),s=pick(SUF),r=R();
+  if(r<.07)return"xX_"+n+"_Xx";
+  if(r<.2)return n+Math.floor(R()*900+10);
+  if(r<.28)return n+"."+pick(NAMES);
+  return n+s;}
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(1)+"K";return""+n;}
+function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
+function avatar(el,name,size){const[a,b]=HUES[hash(name)%HUES.length];
+  el.style.cssText="width:"+size+"px;height:"+size+"px;font-size:"+(size*.42)+"px;"+
+  "background:linear-gradient(135deg,"+a+","+b+")";
+  el.className="avatar";
+  el.textContent=(name.replace(/[^a-zA-Z]/g,"")[0]||"?").toUpperCase();}
+function avatarHTML(name,size){const[a,b]=HUES[hash(name)%HUES.length];
+  return'<span class="avatar" style="width:'+size+'px;height:'+size+'px;font-size:'+(size*.42)+
+  'px;background:linear-gradient(135deg,'+a+','+b+')">'+
+  (name.replace(/[^a-zA-Z]/g,"")[0]||"?").toUpperCase()+'</span>';}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function comment(){const r=R();
+  let t = r<.08 ? pick(ES) : r<.14 ? pick(FR) : pick(EN);
+  if(R()<.08) t = t + " " + pick(["🔥","😂","❤️","💀","🙌"]);
+  if(R()<.05) t = t.toUpperCase();
+  return t;}
+function gift(){let tot=GIFTS.reduce((a,g)=>a+g.w,0),r=R()*tot;
+  for(const g of GIFTS){r-=g.w;if(r<=0)return g;}return GIFTS[0];}
+
+/* ================= setup ================= */
+const $=id=>document.getElementById(id);
+let front=true, viewers=20300, likes=0, stream=null, timers=[];
+
+$("vrange").oninput=e=>{viewers=+e.target.value;$("vlabel").textContent=fmt(viewers);};
+$("frontrow").onclick=()=>{front=!front;$("frontsw").classList.toggle("on",front);};
+
+function showErr(msg){const e=$("err");e.style.display="block";e.innerHTML=msg;}
+
+async function startCamera(){
+  if(!window.isSecureContext){
+    showErr("The camera only works over <b>https://</b>. Open this page from a hosted URL, not from a file.");
+    return false;}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    showErr("This browser has no camera access. Try Safari on iPhone or Chrome on Android.");
+    return false;}
+  try{
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:front?"user":{exact:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+    const v=$("vid");v.srcObject=stream;v.classList.toggle("mirror",front);
+    await v.play().catch(()=>{});
+    return true;
+  }catch(err){
+    if(err.name==="OverconstrainedError"&&!front){
+      front=true;return startCamera();}
+    const m={NotAllowedError:"Camera permission was denied. Allow it in the browser settings for this site, then reload.",
+      NotFoundError:"No camera found on this device.",
+      NotReadableError:"The camera is used by another app. Close it and try again.",
+      SecurityError:"The page blocked camera access. Open it directly, not inside another app's browser."};
+    showErr(m[err.name]||("Camera failed: "+err.name));
+    return false;}
+}
+
+$("gobtn").onclick=async()=>{
+  const ok=await startCamera();
+  if(!ok)return;
+  const name=($("nick").value.trim())||pick(NAMES);
+  likes=Math.floor(viewers*7.3);
+  avatar($("hostav"),name,30);
+  $("hostav").style.boxShadow="0 0 0 2px rgba(255,255,255,.9)";
+  $("hostname").textContent=name;
+  $("setup").style.display="none";
+  $("live").style.display="block";
+  try{await document.documentElement.requestFullscreen();}catch(e){}
+  try{await navigator.wakeLock.request("screen");}catch(e){}
+  run();
+};
+
+$("flip").onclick=async()=>{front=!front;await startCamera();};
+
+$("exit").onclick=()=>{
+  timers.forEach(clearTimeout);timers=[];
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  try{document.exitFullscreen();}catch(e){}
+  $("live").style.display="none";$("setup").style.display="flex";
+  $("chat").innerHTML="";
+};
+
+/* ================= live loops ================= */
+function run(){
+  const chat=$("chat");
+  const push=el=>{chat.appendChild(el);
+    while(chat.children.length>36)chat.removeChild(chat.firstChild);
+    chat.scrollTop=chat.scrollHeight;};
+
+  // viewers + likes
+  const vt=setInterval(()=>{
+    viewers=Math.max(50,Math.round(viewers+(R()-.48)*viewers*.012));
+    likes+=Math.floor(R()*40);
+    $("viewers").textContent=fmt(viewers);
+    $("likes").textContent=fmt(likes)+" 💗";},900);
+  timers.push(vt);
+  $("viewers").textContent=fmt(viewers);$("likes").textContent=fmt(likes)+" 💗";
+
+  // chat
+  const speed=Math.max(70,900-Math.log10(viewers+10)*170);
+  (function tick(){
+    const n=nick();
+    if(R()<.1){const d=document.createElement("div");d.className="join";
+      d.textContent=n+" joined";push(d);}
+    else{const d=document.createElement("div");d.className="msg";
+      d.innerHTML=avatarHTML(n,20)+'<span class="t"><span class="n">'+esc(n)+'</span> '+esc(comment())+'</span>';
+      push(d);}
+    timers.push(setTimeout(tick,speed*(.35+R()*1.4)));
+  })();
+
+  // gifts
+  (function tick(){
+    const g=gift(),n=nick(),count=g.c<=5?1+Math.floor(R()*20):1;
+    if(g.c>=150){
+      const b=$("banner");avatar($("bav"),n,36);
+      $("bwho").textContent=n;$("bwhat").textContent="sent "+g.n;$("bemo").textContent=g.e;
+      b.style.display="flex";b.classList.remove("slide-in");void b.offsetWidth;b.classList.add("slide-in");
+      timers.push(setTimeout(()=>{b.style.display="none";},6000));
+    }else{
+      const d=document.createElement("div");d.className="gift";
+      d.innerHTML=avatarHTML(n,20)+'<span><b>'+esc(n)+'</b> sent '+g.n+'</span><span style="font-size:16px">'+
+        g.e+'</span>'+(count>1?'<span class="x">x'+count+'</span>':'');
+      push(d);
+      timers.push(setTimeout(()=>d.remove(),4500));
+    }
+    timers.push(setTimeout(tick,2500+R()*12000));
+  })();
+
+  // hearts
+  const ht=setInterval(()=>{
+    const s=document.createElement("span");
+    s.textContent="❤";s.style.left=(R()*44)+"px";
+    s.style.color=pick(HUES)[0];s.style.animationDuration=(2.4+R()*1.6)+"s";
+    $("hearts").appendChild(s);setTimeout(()=>s.remove(),4200);},320);
+  timers.push(ht);
+}
+</script>
+</body>
+</html>
