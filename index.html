@@ -53,7 +53,8 @@
   .dot{width:6px;height:6px;border-radius:50%;background:#ff3b5c;animation:pulse 1.2s infinite}
   @keyframes pulse{50%{opacity:.3}}
   .live-txt{font-size:11px;font-weight:600}
-  .count{margin-left:auto;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+  .count{margin-left:auto;font-size:20px;font-weight:800;color:#ff3b5c;text-shadow:0 0 20px rgba(255,59,92,0.5)}
+  .count svg{width:18px;height:18px;margin-right:2px}
   .icon-btn{width:32px;height:32px;border:0;border-radius:50%;background:rgba(0,0,0,.45);
     -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font-size:16px;
     display:flex;align-items:center;justify-content:center;font-family:inherit}
@@ -120,8 +121,8 @@
     <label>Username
       <input id="nick" type="text" placeholder="yourname" autocomplete="off" autocapitalize="none">
     </label>
-    <label>Viewers: <b id="vlabel" style="color:#fff">20.3K</b>
-      <input id="vrange" type="range" min="500" max="150000" step="100" value="20300">
+    <label>Viewers: <b id="vlabel" style="color:#fff">1.2M</b>
+      <input id="vrange" type="range" min="500" max="10000000" step="100" value="1200000">
     </label>
     <div class="row" id="frontrow">
       <span style="font-size:14px">Start with front camera</span>
@@ -141,7 +142,7 @@
       <div class="pill count">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="opacity:.8">
           <path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-        <span id="viewers">20.3K</span>
+        <span id="viewers">1.2M</span>
       </div>
       <button class="icon-btn" id="exit">✕</button>
     </div>
@@ -173,7 +174,7 @@
 const NAMES=["jake","emma","liam","sofia","noah","mia","lucas","ava","ethan","chloe","mason","zoe","leo","maya",
 "ryan","lily","adam","nina","kyle","elena","dylan","sara","owen","ruby","caleb","jade","finn","alice","max","ivy",
 "diego","lucia","hugo","manon","theo","clara","pablo","ines","jack","nora","luca","emily","sam","tara","ben","mila"];
-const SUF=["","","_","1","07","12","99","23","x","_x","22","official","yt","_","2005","98"];
+const SUF=["","","","_1","07","12","99","23","x","_x","22","official","yt","_","2005","98"];
 
 const EN=["W","W stream","hi","hiii","hey","yo","sup","hello","LOL","lmao","gg","first","wtf","no way","hahaha",
 "bruh","real","fr fr","facts","insane","this is crazy","im dead","she typed it","let's go","king","queen","goat",
@@ -237,7 +238,7 @@ function gift(){let tot=GIFTS.reduce((a,g)=>a+g.w,0),r=R()*tot;
 
 /* ================= setup ================= */
 const $=id=>document.getElementById(id);
-let front=true, viewers=20300, likes=0, stream=null, timers=[];
+let front=true, viewers=1200000, likes=0, stream=null, timers=[];
 
 $("vrange").oninput=e=>{viewers=+e.target.value;$("vlabel").textContent=fmt(viewers);};
 $("frontrow").onclick=()=>{front=!front;$("frontsw").classList.toggle("on",front);};
@@ -349,110 +350,6 @@ function run(){
   timers.push(ht);
 }
 </script>
-<script src="donate.js"></script></body>
+<script src="donate.js"></script>
+</body>
 </html>
-/* ---------------------------------------------------------------
-   HODNOCENÍ V CHATU  —  přilep na konec donate.js
-   Občas pošle do existujícího chatu zprávu typu "7/10".
-   Vypnutí: Ratings.stop()   |  Ruční: Ratings.show()
------------------------------------------------------------------- */
-(function () {
-  "use strict";
-
-  // ---- nastavení -------------------------------------------------
-  const MIN_DELAY = 5000;    // nejkratší pauza mezi hodnoceními (ms)
-  const MAX_DELAY = 12000;   // nejdelší pauza (ms)
-  const MIN_SCORE = 3;       // od 3/10
-  const MAX_SCORE = 10;      // do 10/10
-  const LIFETIME  = 4500;    // stejné jako u tvých komentářů
-  const SUFFIX_CHANCE = 0.25; // šance, že se za hodnocení přidá slovo
-
-  const SUFFIXES = ["", "", "", "easy", "bez debat", "minimálně", "solid", "🔥", "no cap"];
-
-  const NAMES = (window.Donate && window.Donate.NAMES) || [
-    "kubaa_99", "TerkaM", "lucie.k", "PetrHRK", "matej_cz", "nikca__",
-    "DavidP", "honza1234", "sarka.b", "ella_x", "filip.dvorak", "michal_"
-  ];
-
-  const rnd  = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  const esc  = (s) => String(s).replace(/[&<>"]/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-
-  function makeText() {
-    const score = rnd(MIN_SCORE, MAX_SCORE) + "/10";
-    if (Math.random() < SUFFIX_CHANCE) {
-      const s = pick(SUFFIXES);
-      if (s) return score + " " + s;
-    }
-    return score;
-  }
-
-  // ---- najdeme chat tak, že si všimneme, kam padají tvoje komentáře ----
-  let feed = null, template = null;
-
-  const obs = new MutationObserver((muts) => {
-    for (const m of muts) {
-      for (const n of m.addedNodes) {
-        if (n.nodeType !== 1) continue;
-        if (n.dataset && n.dataset.rating) continue;   // vlastní zprávy ignoruj
-        if (n.querySelector && n.querySelector("span b")) {
-          feed = m.target;
-          template = n;
-        }
-      }
-    }
-  });
-  obs.observe(document.body, { childList: true, subtree: true });
-
-  // ---- vložení jedné zprávy --------------------------------------
-  function show() {
-    if (!feed || !template || !template.isConnected && !template.cloneNode) return;
-
-    const name = pick(NAMES);
-    const el = template.cloneNode(true);
-    el.dataset.rating = "1";
-
-    const span = el.querySelector("span");
-    if (span) span.innerHTML = "<b>" + esc(name) + "</b> " + esc(makeText());
-
-    // avatar (kolečko s písmenem) přebarvit na nové jméno
-    const av = el.firstElementChild;
-    if (av && av !== span && av.textContent.trim().length <= 2) {
-      av.textContent = name[0].toUpperCase();
-    }
-
-    feed.appendChild(el);
-    setTimeout(() => el.remove(), LIFETIME);
-  }
-
-  // ---- smyčka -----------------------------------------------------
-  let timer = null, running = false;
-
-  function loop() {
-    timer = setTimeout(() => {
-      if (!document.hidden) show();
-      loop();
-    }, rnd(MIN_DELAY, MAX_DELAY));
-  }
-
-  function start() {
-    if (running) return;
-    running = true;
-    loop();
-  }
-
-  function stop() {
-    running = false;
-    clearTimeout(timer);
-    obs.disconnect();
-  }
-
-  window.Ratings = { start, stop, show };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
-  } else {
-    start();
-  }
-})();
