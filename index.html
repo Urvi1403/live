@@ -121,8 +121,8 @@
     <label>Username
       <input id="nick" type="text" placeholder="yourname" autocomplete="off" autocapitalize="none">
     </label>
-    <label>Viewers: <b id="vlabel" style="color:#fff">1.2M</b>
-      <input id="vrange" type="range" min="500" max="10000000" step="100" value="1200000">
+    <label>Viewers: <b id="vlabel" style="color:#fff">20.0K</b>
+      <input id="vrange" type="range" min="100" max="1000000" step="100" value="20000">
     </label>
     <div class="row" id="frontrow">
       <span style="font-size:14px">Start with front camera</span>
@@ -142,7 +142,7 @@
       <div class="pill count">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="opacity:.8">
           <path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-        <span id="viewers">1.2M</span>
+        <span id="viewers">20.0K</span>
       </div>
       <button class="icon-btn" id="exit">✕</button>
     </div>
@@ -238,7 +238,7 @@ function gift(){let tot=GIFTS.reduce((a,g)=>a+g.w,0),r=R()*tot;
 
 /* ================= setup ================= */
 const $=id=>document.getElementById(id);
-let front=true, viewers=1200000, likes=0, stream=null, timers=[];
+let front=true, viewers=20000, likes=0, stream=null, timers=[];
 
 $("vrange").oninput=e=>{viewers=+e.target.value;$("vlabel").textContent=fmt(viewers);};
 $("frontrow").onclick=()=>{front=!front;$("frontsw").classList.toggle("on",front);};
@@ -311,8 +311,8 @@ function run(){
   timers.push(vt);
   $("viewers").textContent=fmt(viewers);$("likes").textContent=fmt(likes)+" 💗";
 
-  // chat
-  const speed=Math.max(70,900-Math.log10(viewers+10)*170);
+  // chat – rychlost přizpůsobená počtu diváků (při 20K ~ 350 ms mezi zprávami)
+  const speed = Math.max(150, 1000 - Math.log10(viewers + 10) * 150);
   (function tick(){
     const n=nick();
     if(R()<.1){const d=document.createElement("div");d.className="join";
@@ -320,7 +320,7 @@ function run(){
     else{const d=document.createElement("div");d.className="msg";
       d.innerHTML=avatarHTML(n,20)+'<span class="t"><span class="n">'+esc(n)+'</span> '+esc(comment())+'</span>';
       push(d);}
-    timers.push(setTimeout(tick,speed*(.35+R()*1.4)));
+    timers.push(setTimeout(tick, speed * (0.35 + R() * 1.4)));
   })();
 
   // gifts
